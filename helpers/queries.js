@@ -88,23 +88,23 @@ export const missingParticipants = (uuid) => `
   `
 
 // export const queryVoting = (uuid) => `
-  //     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-  //     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-  //     PREFIX prov: <http://www.w3.org/ns/prov#>
-  //     PREFIX dct: <http://purl.org/dc/terms/>
-  //
-  //     SELECT * WHERE {
-  //       ?zitting besluit:behandelt ?agendapoint.
-  //       ?behandeling besluit:heeftStemming ?voting.
-  //       ?voting besluit:aantalOnthouders ?FaantalOnthouders .
-  //       ?voting besluit:aantalTegenstanders ?aantalTegenstanders .
-  //       ?voting besluit:aantalTegenstanders ?aantalVoorstanders .
-  //       ?voting besluit:geheim ?geheim .
-  //       ?voting besluit:gevolg ?gevolg .
-  //       ?voting besluit:onderwerp ?onderwerp .
-  //       ?meeting mu:uuid "${uuid}"
-  //     }
-  // `
+//     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+//     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
+//     PREFIX prov: <http://www.w3.org/ns/prov#>
+//     PREFIX dct: <http://purl.org/dc/terms/>
+//
+//     SELECT * WHERE {
+//       ?zitting besluit:behandelt ?agendapoint.
+//       ?behandeling besluit:heeftStemming ?voting.
+//       ?voting besluit:aantalOnthouders ?FaantalOnthouders .
+//       ?voting besluit:aantalTegenstanders ?aantalTegenstanders .
+//       ?voting besluit:aantalTegenstanders ?aantalVoorstanders .
+//       ?voting besluit:geheim ?geheim .
+//       ?voting besluit:gevolg ?gevolg .
+//       ?voting besluit:onderwerp ?onderwerp .
+//       ?meeting mu:uuid "${uuid}"
+//     }
+// `
 
 export const queryBehandeling = (uuid) => `
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>

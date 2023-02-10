@@ -78,19 +78,10 @@ export async function doShaclValidation(uuid) {
     data.push(finalDoc)
   }
 
-  return await processHTML(data);
-}
-
-function doShaclValidationAsync(func) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(func());
-    }, Math.floor(Math.random() * 1000));
-  });
+  return (await processHTML(data)).filter(e => e.length !== 0)
 }
 
 async function processHTML(data) {
-  const errorMessages = []
   const promises = [];
 
   for(let i = 0; i < data.length; i++) {
@@ -99,28 +90,22 @@ async function processHTML(data) {
     myParser.write(data[i]);
     myParser.end();
 
-    promises.push(doShaclValidationAsync( () => {
+    promises.push(new Promise((resolve) => {
       myParser
-        .on('data', (data) => {
-          myQuads.push(data);
-        })
-        .on('error', console.error)
-        .on('end', async () => {
-          const response = await main(myQuads);
-          errorMessages.push(response[0]);
-        });
+          .on('data', (data) => {
+            myQuads.push(data);
+          })
+          .on('error', console.error)
+          .on('end', async () => {
+            const response = await main(myQuads);
+
+            resolve(response);
+          });
     }));
+
   }
 
-  await Promise.all(promises)
-    .then((results) => {
-      console.log("All done", results);
-    })
-    .catch((e) => {
-      console.error("Something went wrong")
-    });
-
-  return errorMessages
+  return await Promise.all(promises);
 }
 
 export async function validatePresidentOfBehandeling(uri) {
