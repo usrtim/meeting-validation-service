@@ -1,7 +1,0 @@
-services:
-  my_project_sparql:
-    image: my_project_sparql
-    environment:
-      NODE_ENV: "development"
-    volumes:
-      - ./

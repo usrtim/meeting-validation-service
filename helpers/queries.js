@@ -1,4 +1,4 @@
-export const queryBehandelingShacl = (uri) => `
+export const queryTreatmentsForShaclValidation = (uri) => `
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
       PREFIX prov: <http://www.w3.org/ns/prov#>
@@ -17,7 +17,7 @@ export const queryBehandelingShacl = (uri) => `
       }
   `
 
-export const queryBehandelingMeeting = (uuid) => `
+export const queryTreatmentsForMeetingValidation = (uuid) => `
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
       PREFIX prov: <http://www.w3.org/ns/prov#>
@@ -25,8 +25,8 @@ export const queryBehandelingMeeting = (uuid) => `
       PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
       SELECT DISTINCT ?behandeling ?editorDocumentContent ?editorDocumentContext WHERE {
-        ?zitting besluit:behandelt ?agendapoint.
-        ?behandeling besluit:heeftStemming ?voting.
+        ?meeting besluit:behandelt ?agendapoint.
+        ?behandeling dct:subject ?agendapoint .
         ?voting besluit:aantalOnthouders ?FaantalOnthouders .
         ?voting besluit:aantalTegenstanders ?aantalTegenstanders .
         ?voting besluit:aantalTegenstanders ?aantalVoorstanders .
@@ -56,8 +56,9 @@ export const queryAllMeetings = (uuid) => `
       ?meeting besluit:heeftVoorzitter ?heeftVoorzitter .
       ?meeting besluit:heeftSecretaris ?heeftSecretaris .
       ?meeting besluit:behandelt ?behandelt .
-      ?meeting prov:atLocation ?atLocation .
-      ?zitting besluit:behandelt ?agendapoint.
+      ?meeting prov:atLocation ?atLocation .        
+      ?meeting besluit:behandelt ?agendapoint.
+      ?behandeling dct:subject ?agendapoint .
       ?behandeling besluit:heeftStemming ?voting.
       ?voting besluit:aantalOnthouders ?FaantalOnthouders .
       ?meeting mu:uuid "${uuid}"
@@ -75,7 +76,7 @@ export const queryParticipants = (uuid) => `
       }
   `
 
-export const missingParticipants = (uuid) => `
+export const queryMissingParticipants = (uuid) => `
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
       PREFIX prov: <http://www.w3.org/ns/prov#>
@@ -83,7 +84,7 @@ export const missingParticipants = (uuid) => `
       
       SELECT * WHERE {
         ?meeting ext:heeftAfwezigeBijStart ?heeftAfwezigeBijStart .
-        ?meeting mu:uuid "63C179A04D59285A700E5D29"
+        ?meeting mu:uuid "${uuid}"
       }
   `
 
@@ -106,13 +107,13 @@ export const missingParticipants = (uuid) => `
 //     }
 // `
 
-export const queryBehandeling = (uuid) => `
+export const queryTreatment = (uuid) => `
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
       PREFIX dct: <http://purl.org/dc/terms/>
       
       SELECT * WHERE {
-        ?zitting besluit:behandelt ?agendapoint.
+        ?meeting besluit:behandelt ?agendapoint.
         ?behandeling dct:subject ?agendapoint.
         ?meeting mu:uuid "${uuid}"
       }

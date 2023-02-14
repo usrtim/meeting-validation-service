@@ -4,7 +4,10 @@ import factory from "rdf-ext";
 import datasetFactory from "@rdfjs/dataset";
 import SHACLValidator from "rdf-validate-shacl";
 import { querySudo as query } from "@lblod/mu-auth-sudo";
-import { queryBehandelingMeeting, queryBehandelingShacl } from "./queries.js";
+import {
+  queryTreatmentsForMeetingValidation,
+  queryTreatmentsForShaclValidation
+} from "./queries.js";
 import { RdfaParser } from "rdfa-streaming-parser";
 
 export async function loadDataset (filePath) {
@@ -33,28 +36,28 @@ export async function main(quds) {
   return new Promise(resolve => resolve(errorMessages))
 }
 
-export async function validateShaclBehandeling(uri) {
+export async function shaclValidateTreatment(uri) {
   let uriSplit = uri.split('/');
   let _uri = uriSplit[5]
 
-  const item = await query(queryBehandelingShacl(_uri));
+  const item = await query(queryTreatmentsForShaclValidation(_uri));
 
-  return new Promise(resolve => resolve(item.results.bindings))
+  return item.results.bindings;
 }
 
 export async function doShaclValidation(uuid) {
-  const htmlContent = await query(queryBehandelingMeeting(uuid));
-  let prefixDoc = '';
+  const htmlContent = await query(queryTreatmentsForMeetingValidation(uuid));
+  let meetingsAddPrefix = '';
   let doc = '';
   let data = [];
-  let validateBehandeling = [];
+  let validTreatments = [];
   for (const document of htmlContent.results.bindings) {
-    validateBehandeling.push(await validateShaclBehandeling(document.behandeling.value));
+    validTreatments.push(await shaclValidateTreatment(document.behandeling.value));
     let prefix = ''
     let finalDoc = ''
-    prefixDoc = JSON.parse(document?.editorDocumentContext.value).prefix
+    meetingsAddPrefix = JSON.parse(document?.editorDocumentContext.value).prefix
     doc = document?.editorDocumentContent.value
-    for (const [key, value] of Object.entries(prefixDoc)) {
+    for (const [key, value] of Object.entries(meetingsAddPrefix)) {
       prefix += key + ": "+ value + " ";
     }
     finalDoc = `<div prefix="${prefix}">` + doc + "</div>";
@@ -62,19 +65,19 @@ export async function doShaclValidation(uuid) {
   }
 
 
-  let prefixDocBehandeling = '';
-  let docBehandeling = '';
-  for(const document of validateBehandeling.filter(e => e.length)) {
+  let treatmentsAddPrefix = '';
+  let treatmentDoc = '';
+  for(const document of validTreatments.filter(e => e.length)) {
     let prefix = ''
     let finalDoc = ''
-    prefixDocBehandeling = JSON.parse(document[0]?.editorDocumentContext.value).prefix
-    docBehandeling = document[0]?.editorDocumentContent.value
+    treatmentsAddPrefix = JSON.parse(document[0]?.editorDocumentContext.value).prefix
+    treatmentDoc = document[0]?.editorDocumentContent.value
 
-    for (const [key, value] of Object.entries(prefixDocBehandeling)) {
+    for (const [key, value] of Object.entries(treatmentsAddPrefix)) {
       prefix += key + ": "+ value + " ";
     }
 
-    finalDoc = `<div prefix="${prefix}">` + doc + "</div>";
+    finalDoc = `<div prefix="${prefix}">` + treatmentDoc + "</div>";
     data.push(finalDoc)
   }
 
@@ -108,7 +111,7 @@ async function processHTML(data) {
   return await Promise.all(promises);
 }
 
-export async function validatePresidentOfBehandeling(uri) {
+export async function validateTreatmentPresident(uri) {
   let uriSplit = uri.split('/');
   let _uri = uriSplit[5]
 
@@ -117,28 +120,31 @@ export async function validatePresidentOfBehandeling(uri) {
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
         PREFIX dct: <http://purl.org/dc/terms/>
 
-        SELECT ?heeftVoorzitter WHERE {
-          ?mandaris besluit:heeftVoorzitter ?heeftVoorzitter .
+        SELECT ?hasPresident WHERE {
+          ?mandatee besluit:heeftVoorzitter ?hasPresident .
           ?behandeling mu:uuid "${_uri}"
         }
   `
 
   const item = await query(query_);
-  return new Promise(resolve => resolve(item.results.bindings))
+
+  return item.results.bindings;
 }
 
-export function validateParticipants(meeting, participants) {
+export function checkIfParticipantsAttendingMeeting(meetingsURIs, participantsURIs) {
   let isValid = true
-  participants.forEach((participant) => {
-    if(meeting.includes(participant)) isValid = false
+
+  participantsURIs.forEach((participant) => {
+    if(meetingsURIs.includes(participant)) isValid = false
   })
 
   return isValid
 }
 
-export async function validateBehandeling(uri) {
+export async function validateTreatment(uri) {
   let uriSplit = uri.split('/');
-  let _uri = uriSplit[5]
+  let _uri = uriSplit[5];
+
   const query_ = `
         PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -152,5 +158,5 @@ export async function validateBehandeling(uri) {
 
   const item = await query(query_);
 
-  return new Promise(resolve => resolve(item.results.bindings))
+  return item.results.bindings;
 }
