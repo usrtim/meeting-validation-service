@@ -1,7 +1,7 @@
 import { app, errorHandler } from "mu";
 import { querySudo as query } from "@lblod/mu-auth-sudo";
 import {
-  queryAllMeetings,
+  queryMeeting,
   queryParticipants, queryMissingParticipants, queryTreatment
 } from "./helpers/queries.js";
 import {
@@ -14,13 +14,22 @@ import {
 app.get('/validateMeeting', async function( req, res ) {
   const uuid = req.query?.uuid
 
-  const fetchMeetings = await query(queryAllMeetings(uuid));
-  const meetings = fetchMeetings.results.bindings.map(item => item.meeting.value)
-
-
-  if(meetings.length === 0) {
+  if(!uuid) {
     res.send(JSON.stringify({
-      meeting: "No meeting found or meeting is invalid. Meeting should have, start data, end date, participants and president in order to be a valid!",
+      meeting: "uuid query parameter is missing!",
+      success: false
+    }))
+
+    return;
+  }
+
+  const fetchMeeting = await query(queryMeeting(uuid));
+  const meeting = fetchMeeting.results.bindings.map(item => item.meeting.value)
+
+
+  if(meeting.length === 0) {
+    res.send(JSON.stringify({
+      meeting: "Nos meeting found or meeting is invalid. Meeting should have, start data, end date, participants and president in order to be a valid!",
       success: false
     }))
 
@@ -29,12 +38,10 @@ app.get('/validateMeeting', async function( req, res ) {
 
   const fetchParticipants = await query(queryParticipants(uuid));
   const fetchMissingParticipants = await query(queryMissingParticipants(uuid));
-  // const voting = await query(queryVoting);
   const fetchTreatments = await query(queryTreatment(uuid))
   const participants = fetchParticipants.results.bindings.map(item => item.heeftAanwezigeBijStart.value)
   const missingParticipants = fetchMissingParticipants.results.bindings.map(item => item.heeftAfwezigeBijStart.value)
   const treatments = fetchTreatments.results.bindings.map(item => item.behandeling.value)
-  // const votingArr = voting.results.bindings.map(item => item.behandeling.value)
   const areParticipantsValid = checkIfParticipantsAttendingMeeting(missingParticipants, participants)
   const shaclMessages = await doShaclValidation(uuid);
 
@@ -43,7 +50,6 @@ app.get('/validateMeeting', async function( req, res ) {
   for(let item of treatments) {
     const treatmentResults = await validateTreatment(item)
     const treatmentPresident = await validateTreatmentPresident(item)
-    // console.log('ttreatmentPresident', treatmentPresident)
     if(treatmentResults.length === 0) {
       isTreatmentValid = false
     }
@@ -54,7 +60,7 @@ app.get('/validateMeeting', async function( req, res ) {
 
   const errorMessages = {};
 
-  if(meetings.length === 0) {
+  if(meeting.length === 0) {
     errorMessages.meeting = "No meeting found or meeting is invalid. Meeting should have, start data, end date, participants and president in order to be a valid!";
     errorMessages.success = false
   } else {

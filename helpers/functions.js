@@ -38,9 +38,9 @@ export async function main(quds) {
 
 export async function shaclValidateTreatment(uri) {
   let uriSplit = uri.split('/');
-  let _uri = uriSplit[5]
+  let uuid = uriSplit[5]
 
-  const item = await query(queryTreatmentsForShaclValidation(_uri));
+  const item = await query(queryTreatmentsForShaclValidation(uuid));
 
   return item.results.bindings;
 }
@@ -113,7 +113,7 @@ async function processHTML(data) {
 
 export async function validateTreatmentPresident(uri) {
   let uriSplit = uri.split('/');
-  let _uri = uriSplit[5]
+  let uuid = uriSplit[5]
 
   const query_ = `
         PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -121,8 +121,8 @@ export async function validateTreatmentPresident(uri) {
         PREFIX dct: <http://purl.org/dc/terms/>
 
         SELECT ?hasPresident WHERE {
-          ?mandatee besluit:heeftVoorzitter ?hasPresident .
-          ?behandeling mu:uuid "${_uri}"
+          ?behandeling besluit:heeftVoorzitter ?hasPresident .
+          ?behandeling mu:uuid "${uuid}"
         }
   `
 
@@ -143,7 +143,7 @@ export function checkIfParticipantsAttendingMeeting(meetingsURIs, participantsUR
 
 export async function validateTreatment(uri) {
   let uriSplit = uri.split('/');
-  let _uri = uriSplit[5];
+  let uuid = uriSplit[5];
 
   const query_ = `
         PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
@@ -152,7 +152,7 @@ export async function validateTreatment(uri) {
 
         SELECT * WHERE {
           ?behandeling besluit:openbaar ?openbaar .
-          ?behandeling mu:uuid "${_uri}"
+          ?behandeling mu:uuid "${uuid}"
         }
   `
 

@@ -13,7 +13,7 @@ besluit:BesluitShape
     sh:property [
           sh:path eli:title ;
           sh:datatype xsd:string ;
-          sh:minCount 2 ;
+          sh:minCount 1 ;
       ] ;
     sh:property [
           sh:path eli:language ;
