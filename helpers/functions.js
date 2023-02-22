@@ -140,7 +140,6 @@ export function checkIfParticipantsAttendingMeeting(meetingsURIs, participantsUR
 }
 
 export async function validateTreatment(uri) {
-  console.log('1111', {uri});
   const item = await query(`
         PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>

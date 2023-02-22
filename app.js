@@ -25,8 +25,6 @@ app.get('/validateMeeting', async function( req, res ) {
 
   const fetchMeeting = await query(queryMeeting(uuid));
   const meeting = fetchMeeting.results.bindings.map(item => item.meeting.value)
-  console.log('hi there', {meeting: meeting.length});
-
 
   if(meeting.length === 0) {
     res.send(JSON.stringify({
