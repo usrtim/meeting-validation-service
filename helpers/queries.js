@@ -1,3 +1,4 @@
+import { sparqlEscapeString } from 'mu';
 export const queryTreatmentsForShaclValidation = (uuid) => `
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
@@ -13,7 +14,7 @@ export const queryTreatmentsForShaclValidation = (uuid) => `
           ?zitting besluit:behandelt ?agendapoint.
           ?behandeling dct:subject ?agendapoint.
           ?behandeling ext:hasDocumentContainer ?documentContainer .
-          ?behandeling mu:uuid "${uuid}"
+          ?behandeling mu:uuid ${sparqlEscapeString(uuid)}
       }
   `
 
@@ -38,7 +39,7 @@ export const queryTreatmentsForMeetingValidation = (uuid) => `
         ?hasDocumentContainer ext:editorDocumentFolder ?editorDocumentFolder .
         ?rdfa ext:editorDocumentContent ?editorDocumentContent .
         ?rdfa ext:editorDocumentContext ?editorDocumentContext .
-        ?meeting mu:uuid "${uuid}"
+        ?meeting mu:uuid ${sparqlEscapeString(uuid)}
       }
   `
 
@@ -52,16 +53,16 @@ export const queryMeeting = (uuid) => `
       ?meeting besluit:geplandeStart ?geplandeStart .
       ?meeting prov:startedAtTime ?startedAtTime .
       ?meeting prov:endedAtTime ?endedAtTime .
-      ?meeting besluit:heeftAanwezigeBijStart ?heeftAanwezigeBijStart .
-      ?meeting besluit:heeftVoorzitter ?heeftVoorzitter .
-      ?meeting besluit:heeftSecretaris ?heeftSecretaris .
-      ?meeting besluit:behandelt ?behandelt .
-      ?meeting prov:atLocation ?atLocation .        
-      ?meeting besluit:behandelt ?agendapoint.
-      ?behandeling dct:subject ?agendapoint .
-      ?behandeling besluit:heeftStemming ?voting.
-      ?voting besluit:aantalOnthouders ?FaantalOnthouders .
-      ?meeting mu:uuid "${uuid}"
+      ?meeting prov:atLocation ?atLocation . 
+      OPTIONAL { ?meeting besluit:heeftAanwezigeBijStart ?heeftAanwezigeBijStart . }
+      OPTIONAL { ?meeting besluit:heeftVoorzitter ?heeftVoorzitter . }
+      OPTIONAL { ?meeting besluit:heeftSecretaris ?heeftSecretaris . }
+      OPTIONAL { ?meeting besluit:behandelt ?behandelt . }    
+      OPTIONAL { ?meeting besluit:behandelt ?agendapoint. }
+      OPTIONAL { ?behandeling dct:subject ?agendapoint . }
+      OPTIONAL { ?behandeling besluit:heeftStemming ?voting. }
+      OPTIONAL { ?voting besluit:aantalOnthouders ?FaantalOnthouders . }
+      ?meeting mu:uuid ${sparqlEscapeString(uuid)}
     }
   `
 
@@ -72,7 +73,7 @@ export const queryParticipants = (uuid) => `
       
       SELECT ?heeftAanwezigeBijStart WHERE {
         ?meeting besluit:heeftAanwezigeBijStart ?heeftAanwezigeBijStart .
-        ?meeting mu:uuid "${uuid}"
+        ?meeting mu:uuid ${sparqlEscapeString(uuid)}
       }
   `
 
@@ -84,7 +85,7 @@ export const queryMissingParticipants = (uuid) => `
       
       SELECT * WHERE {
         ?meeting ext:heeftAfwezigeBijStart ?heeftAfwezigeBijStart .
-        ?meeting mu:uuid "${uuid}"
+        ?meeting mu:uuid ${sparqlEscapeString(uuid)}
       }
   `
 
@@ -96,6 +97,6 @@ export const queryTreatment = (uuid) => `
       SELECT * WHERE {
         ?meeting besluit:behandelt ?agendapoint.
         ?behandeling dct:subject ?agendapoint.
-        ?meeting mu:uuid "${uuid}"
+        ?meeting mu:uuid ${sparqlEscapeString(uuid)}
       }
   `

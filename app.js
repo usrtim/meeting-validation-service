@@ -25,11 +25,12 @@ app.get('/validateMeeting', async function( req, res ) {
 
   const fetchMeeting = await query(queryMeeting(uuid));
   const meeting = fetchMeeting.results.bindings.map(item => item.meeting.value)
+  console.log('hi there', {meeting: meeting.length});
 
 
   if(meeting.length === 0) {
     res.send(JSON.stringify({
-      meeting: "Nos meeting found or meeting is invalid. Meeting should have, start data, end date, participants and president in order to be a valid!",
+      meeting: "No meeting found or meeting is invalid. Meeting should have, start data, end date, participants and president in order to be valid!",
       success: false
     }))
 
@@ -47,6 +48,7 @@ app.get('/validateMeeting', async function( req, res ) {
 
   let isTreatmentValid = true
   let hasTreatmentPresident = true
+
   for(let item of treatments) {
     const treatmentResults = await validateTreatment(item)
     const treatmentPresident = await validateTreatmentPresident(item)
@@ -66,18 +68,26 @@ app.get('/validateMeeting', async function( req, res ) {
   } else {
     errorMessages.success = true
 
+    if(treatments.length === 0) {
+      errorMessages.treatment = "No treatment found for this meeting!";
+      errorMessages.success = false
+    }
+
     if (!isTreatmentValid) {
-      errorMessages.treatment = "Behandeling is invalid";
+      errorMessages.treatmentIsInvalid = "Treatment is invalid";
       errorMessages.success = false
     }
+
     if (!hasTreatmentPresident) {
-      errorMessages.treatmentPresidentMissing = "Behandeling shoud have a president";
+      errorMessages.treatmentPresidentMissing = "Treatment should have a president";
       errorMessages.success = false
     }
+
     if (!areParticipantsValid) {
       errorMessages.participants = "Participants are not valid";
       errorMessages.success = false
     }
+
     if(shaclMessages.length !== 0) {
       errorMessages.shacl = shaclMessages
       errorMessages.success = false

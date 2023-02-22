@@ -1,4 +1,5 @@
 import fs from "fs";
+import { sparqlEscapeUri } from 'mu';
 import ParserN3 from "@rdfjs/parser-n3";
 import factory from "rdf-ext";
 import datasetFactory from "@rdfjs/dataset";
@@ -47,6 +48,9 @@ export async function shaclValidateTreatment(uri) {
 
 export async function doShaclValidation(uuid) {
   const htmlContent = await query(queryTreatmentsForMeetingValidation(uuid));
+
+  if(htmlContent.results?.bindings?.length === 0) return false;
+
   let meetingsAddPrefix = '';
   let doc = '';
   let data = [];
@@ -111,22 +115,16 @@ async function processHTML(data) {
   return await Promise.all(promises);
 }
 
-export async function validateTreatmentPresident(uri) {
-  let uriSplit = uri.split('/');
-  let uuid = uriSplit[5]
-
-  const query_ = `
+export async function   validateTreatmentPresident(uri) {
+  const item = await query(`
         PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
         PREFIX dct: <http://purl.org/dc/terms/>
 
         SELECT ?hasPresident WHERE {
-          ?behandeling besluit:heeftVoorzitter ?hasPresident .
-          ?behandeling mu:uuid "${uuid}"
+          ${sparqlEscapeUri(uri)} besluit:heeftVoorzitter ?hasPresident .
         }
-  `
-
-  const item = await query(query_);
+  `);
 
   return item.results.bindings;
 }
@@ -142,21 +140,16 @@ export function checkIfParticipantsAttendingMeeting(meetingsURIs, participantsUR
 }
 
 export async function validateTreatment(uri) {
-  let uriSplit = uri.split('/');
-  let uuid = uriSplit[5];
-
-  const query_ = `
+  console.log('1111', {uri});
+  const item = await query(`
         PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
         PREFIX dct: <http://purl.org/dc/terms/>
 
-        SELECT * WHERE {
-          ?behandeling besluit:openbaar ?openbaar .
-          ?behandeling mu:uuid "${uuid}"
+        SELECT ?openbaar WHERE {
+            ${sparqlEscapeUri(uri)} besluit:openbaar ?openbaar .
         }
-  `
-
-  const item = await query(query_);
+  `);
 
   return item.results.bindings;
 }
