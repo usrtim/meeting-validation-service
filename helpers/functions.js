@@ -10,6 +10,7 @@ import {
   queryTreatmentsForShaclValidation
 } from "./queries.js";
 import { RdfaParser } from "rdfa-streaming-parser";
+import {messages} from "./errorMessages.js";
 
 export async function loadDataset (filePath) {
   const stream = fs.createReadStream(filePath)
@@ -43,12 +44,11 @@ export async function shaclValidateTreatment(uri) {
 
   const item = await query(queryTreatmentsForShaclValidation(uuid));
 
-  return item.results.bindings;
+  return item?.results?.bindings;
 }
 
 export async function doShaclValidation(uuid) {
   const htmlContent = await query(queryTreatmentsForMeetingValidation(uuid));
-
   if(htmlContent.results?.bindings?.length === 0) return false;
 
   let meetingsAddPrefix = '';
@@ -126,7 +126,7 @@ export async function   validateTreatmentPresident(uri) {
         }
   `);
 
-  return item.results.bindings;
+  return item?.results?.bindings;
 }
 
 export function checkIfParticipantsAttendingMeeting(meetingsURIs, participantsURIs) {
@@ -150,5 +150,69 @@ export async function validateTreatment(uri) {
         }
   `);
 
-  return item.results.bindings;
+  return item?.results?.bindings;
+}
+
+export async function generateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages) {
+  let isTreatmentValid = true
+  let hasTreatmentPresident = true
+  const responseMessage = { message: {}, status: 200 };
+
+  for(let item of treatments) {
+    const treatmentResults = await validateTreatment(item)
+    const treatmentPresident = await validateTreatmentPresident(item)
+    if(treatmentResults.length === 0) {
+      isTreatmentValid = false
+    }
+    if(treatmentPresident.length === 0) {
+      hasTreatmentPresident = false
+    }
+  }
+
+  if(meeting.length !== 0) {
+    responseMessage.success = true
+
+    if(treatments.length === 0 || !isTreatmentValid || !hasTreatmentPresident || !areParticipantsValid || shaclMessages.length !== 0) {
+      responseMessage.success = false
+      responseMessage.status = 400;
+    }
+
+    if(treatments.length === 0) {
+      responseMessage.message.treatmentNotFound = messages.meeting.treatmentNotFound;
+    }
+
+    if (!isTreatmentValid) {
+      responseMessage.message.treatmentIsInvalid = messages.meeting.treatmentIsInvalid;
+    }
+
+    if (!hasTreatmentPresident) {
+      responseMessage.message.treatmentPresidentMissing = messages.meeting.treatmentPresidentMissing;
+    }
+
+    if (!areParticipantsValid) {
+      responseMessage.message.participants = messages.meeting.participantsAreNotValid;
+    }
+
+    if(!meeting[0].endedAtTime) {
+      responseMessage.message.meetingEndedAtTime = messages.meeting.meetingEndedAtTime
+    }
+
+    if(!meeting[0].hasPresident) {
+      responseMessage.message.meetingHasPresident = messages.meeting.meetingHasPresident
+    }
+
+    if(!meeting[0].hasSecretary) {
+      responseMessage.message.meetingHasSecretary = messages.meeting.meetingHasSecretary
+    }
+
+    if(!meeting[0].agendapoint) {
+      responseMessage.message.meetingHasAgendaPoint = messages.meeting.meetingHasAgendaPoint
+    }
+
+    if(shaclMessages.length !== 0) {
+      responseMessage.message.shacl = shaclMessages
+    }
+  }
+
+  return new Promise(resolve => resolve(responseMessage))
 }

@@ -7,16 +7,16 @@ import {
 import {
   checkIfParticipantsAttendingMeeting,
   doShaclValidation,
-  validateTreatment,
-  validateTreatmentPresident
+  generateErrorMessages,
 } from "./helpers/functions.js";
+import {messages} from "./helpers/errorMessages.js";
 
 app.get('/validateMeeting', async function( req, res ) {
   const uuid = req.query?.uuid
 
   if(!uuid) {
-    res.send(JSON.stringify({
-      meeting: "uuid query parameter is missing!",
+    res.status(400).send(JSON.stringify({
+      message: messages.uuidMissing,
       success: false
     }))
 
@@ -24,11 +24,11 @@ app.get('/validateMeeting', async function( req, res ) {
   }
 
   const fetchMeeting = await query(queryMeeting(uuid));
-  const meeting = fetchMeeting.results.bindings.map(item => item.meeting.value)
+  const meeting = fetchMeeting.results.bindings
 
   if(meeting.length === 0) {
-    res.send(JSON.stringify({
-      meeting: "No meeting found or meeting is invalid. Meeting should have, start data, end date, participants and president in order to be valid!",
+    res.status(400).send(JSON.stringify({
+      message: "No meeting found!",
       success: false
     }))
 
@@ -44,55 +44,9 @@ app.get('/validateMeeting', async function( req, res ) {
   const areParticipantsValid = checkIfParticipantsAttendingMeeting(missingParticipants, participants)
   const shaclMessages = await doShaclValidation(uuid);
 
-  let isTreatmentValid = true
-  let hasTreatmentPresident = true
+  const responseMessage = await generateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages)
 
-  for(let item of treatments) {
-    const treatmentResults = await validateTreatment(item)
-    const treatmentPresident = await validateTreatmentPresident(item)
-    if(treatmentResults.length === 0) {
-      isTreatmentValid = false
-    }
-    if(treatmentPresident.length === 0) {
-      hasTreatmentPresident = false
-    }
-  }
-
-  const errorMessages = {};
-
-  if(meeting.length === 0) {
-    errorMessages.meeting = "No meeting found or meeting is invalid. Meeting should have, start data, end date, participants and president in order to be a valid!";
-    errorMessages.success = false
-  } else {
-    errorMessages.success = true
-
-    if(treatments.length === 0) {
-      errorMessages.treatment = "No treatment found for this meeting!";
-      errorMessages.success = false
-    }
-
-    if (!isTreatmentValid) {
-      errorMessages.treatmentIsInvalid = "Treatment is invalid";
-      errorMessages.success = false
-    }
-
-    if (!hasTreatmentPresident) {
-      errorMessages.treatmentPresidentMissing = "Treatment should have a president";
-      errorMessages.success = false
-    }
-
-    if (!areParticipantsValid) {
-      errorMessages.participants = "Participants are not valid";
-      errorMessages.success = false
-    }
-
-    if(shaclMessages.length !== 0) {
-      errorMessages.shacl = shaclMessages
-      errorMessages.success = false
-    }
-  }
-
-  res.send( JSON.stringify(errorMessages) );
+  res.status(responseMessage.status).send( JSON.stringify(responseMessage) );
 })
 
 
