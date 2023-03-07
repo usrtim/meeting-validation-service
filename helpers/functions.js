@@ -6,8 +6,7 @@ import datasetFactory from "@rdfjs/dataset";
 import SHACLValidator from "rdf-validate-shacl";
 import { querySudo as query } from "@lblod/mu-auth-sudo";
 import {
-  queryTreatmentsForMeetingValidation,
-  queryTreatmentsForShaclValidation
+  queryDocumentsForMeetingValidation
 } from "./queries.js";
 import { RdfaParser } from "rdfa-streaming-parser";
 import {messages} from "./errorMessages.js";
@@ -18,9 +17,9 @@ export async function loadDataset (filePath) {
   return factory.dataset().import(parser.import(stream))
 }
 
-export async function main(quds) {
+export async function getShaclErrorMessages(quads) {
   const shapes = await loadDataset('myshapes.ttl')
-  const data = datasetFactory.dataset(quds)
+  const data = datasetFactory.dataset(quads)
 
   const validator = new SHACLValidator(shapes, { factory })
   const report = await validator.validate(data)
@@ -35,53 +34,33 @@ export async function main(quds) {
     })
   }
 
-  return new Promise(resolve => resolve(errorMessages))
-}
-
-export async function shaclValidateTreatment(uri) {
-  let uriSplit = uri.split('/');
-  let uuid = uriSplit[5]
-
-  const item = await query(queryTreatmentsForShaclValidation(uuid));
-
-  return item?.results?.bindings;
+  return errorMessages
 }
 
 export async function doShaclValidation(uuid) {
-  const htmlContent = await query(queryTreatmentsForMeetingValidation(uuid));
-  if(htmlContent.results?.bindings?.length === 0) return false;
+  const response = await query(queryDocumentsForMeetingValidation(uuid));
+  if(response.results?.bindings?.length === 0) return 'No Document found when trying to do the SHACL validation';
 
-  let meetingsAddPrefix = '';
-  let doc = '';
-  let data = [];
-  let validTreatments = [];
-  for (const document of htmlContent.results.bindings) {
-    validTreatments.push(await shaclValidateTreatment(document.behandeling.value));
-    let prefix = ''
-    let finalDoc = ''
-    meetingsAddPrefix = JSON.parse(document?.editorDocumentContext.value).prefix
-    doc = document?.editorDocumentContent.value
-    for (const [key, value] of Object.entries(meetingsAddPrefix)) {
-      prefix += key + ": "+ value + " ";
-    }
-    finalDoc = `<div prefix="${prefix}">` + doc + "</div>";
-    data.push(finalDoc)
+  const data = [];
+  const validTreatments = [];
+  for (const document of response.results.bindings) {
+    validTreatments.push(response.results.bindings);
   }
 
 
-  let treatmentsAddPrefix = '';
-  let treatmentDoc = '';
+  let docPrefix = '';
+  let doc = '';
   for(const document of validTreatments.filter(e => e.length)) {
     let prefix = ''
     let finalDoc = ''
-    treatmentsAddPrefix = JSON.parse(document[0]?.editorDocumentContext.value).prefix
-    treatmentDoc = document[0]?.editorDocumentContent.value
+    docPrefix = JSON.parse(document[0]?.editorDocumentContext.value).prefix
+    doc = document[0]?.editorDocumentContent.value
 
-    for (const [key, value] of Object.entries(treatmentsAddPrefix)) {
+    for (const [key, value] of Object.entries(docPrefix)) {
       prefix += key + ": "+ value + " ";
     }
 
-    finalDoc = `<div prefix="${prefix}">` + treatmentDoc + "</div>";
+    finalDoc = `<div prefix="${prefix}">` + doc + "</div>";
     data.push(finalDoc)
   }
 
@@ -104,7 +83,7 @@ async function processHTML(data) {
           })
           .on('error', console.error)
           .on('end', async () => {
-            const response = await main(myQuads);
+            const response = await getShaclErrorMessages(myQuads);
 
             resolve(response);
           });
@@ -115,56 +94,41 @@ async function processHTML(data) {
   return await Promise.all(promises);
 }
 
-export async function   validateTreatmentPresident(uri) {
+export async function queryPresidentAndPublicness(uri) {
   const item = await query(`
         PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
         PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
         PREFIX dct: <http://purl.org/dc/terms/>
 
-        SELECT ?hasPresident WHERE {
+        SELECT ?hasPresident ?openbaar WHERE {
           ${sparqlEscapeUri(uri)} besluit:heeftVoorzitter ?hasPresident .
+          ${sparqlEscapeUri(uri)} besluit:openbaar ?openbaar .
         }
   `);
 
   return item?.results?.bindings;
 }
+export function overlapBetweenAbsentAndPresentPeople(missingParticipantsURIs, participantsURIs) {
+  const missingParticipants = new Set(missingParticipantsURIs)
+  const participants = new Set(participantsURIs)
 
-export function checkIfParticipantsAttendingMeeting(meetingsURIs, participantsURIs) {
-  let isValid = true
-
-  participantsURIs.forEach((participant) => {
-    if(meetingsURIs.includes(participant)) isValid = false
-  })
-
-  return isValid
+  return [...participants].filter(x => missingParticipants.has(x)).length === 0
 }
 
-export async function validateTreatment(uri) {
-  const item = await query(`
-        PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-        PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
-        PREFIX dct: <http://purl.org/dc/terms/>
-
-        SELECT ?openbaar WHERE {
-            ${sparqlEscapeUri(uri)} besluit:openbaar ?openbaar .
-        }
-  `);
-
-  return item?.results?.bindings;
-}
-
-export async function generateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages) {
+export async function validateAndgenerateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages) {
   let isTreatmentValid = true
   let hasTreatmentPresident = true
   const responseMessage = { message: {}, status: 200 };
 
   for(let item of treatments) {
-    const treatmentResults = await validateTreatment(item)
-    const treatmentPresident = await validateTreatmentPresident(item)
-    if(treatmentResults.length === 0) {
+    const treatmentResults = await queryPresidentAndPublicness(item)
+    const publicness = treatmentResults.filter(item => item?.openbaar)
+    const president = treatmentResults.filter(item => item?.hasPresident)
+
+    if(publicness.length === 0) {
       isTreatmentValid = false
     }
-    if(treatmentPresident.length === 0) {
+    if(president.length === 0) {
       hasTreatmentPresident = false
     }
   }
@@ -214,5 +178,5 @@ export async function generateErrorMessages(meeting, treatments, areParticipants
     }
   }
 
-  return new Promise(resolve => resolve(responseMessage))
+  return responseMessage
 }

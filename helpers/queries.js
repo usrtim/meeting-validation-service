@@ -1,21 +1,6 @@
 import { sparqlEscapeString } from 'mu';
-export const queryTreatmentsForShaclValidation = (uuid) => `
-      PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-      PREFIX dct: <http://purl.org/dc/terms/>
-      PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-      PREFIX pav: <http://purl.org/pav/>
-      
-      SELECT * WHERE {
-          ?behandeling mu:uuid ${sparqlEscapeString(uuid)};
-                       dct:subject ?agendapoint;
-                       ext:hasDocumentContainer ?documentContainer .
-          ?documentContainer pav:hasCurrentVersion ?editorDocument.
-          ?editorDocument ext:editorDocumentContent ?editorDocumentContent;
-                          ext:editorDocumentContext ?editorDocumentContext .
-      }
-  `
 
-export const queryTreatmentsForMeetingValidation = (uuid) => `
+export const queryDocumentsForMeetingValidation = (uuid) => `
       PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
       PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
       PREFIX dct: <http://purl.org/dc/terms/>
