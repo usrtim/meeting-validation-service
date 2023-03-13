@@ -7,7 +7,7 @@ import {
 import {
   overlapBetweenAbsentAndPresentPeople,
   doShaclValidation,
-  generateErrorMessages, validateAndgenerateErrorMessages,
+  validateAndGenerateErrorMessages,
 } from "./helpers/functions.js";
 import {messages} from "./helpers/errorMessages.js";
 
@@ -44,7 +44,7 @@ app.get('/validateMeeting', async function( req, res ) {
   const areParticipantsValid = overlapBetweenAbsentAndPresentPeople(missingParticipants, participants)
   const shaclMessages = await doShaclValidation(uuid);
 
-  const responseMessage = await validateAndgenerateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages)
+  const responseMessage = await validateAndGenerateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages)
 
   res.status(responseMessage.status).send( JSON.stringify(responseMessage) );
 })

@@ -41,28 +41,17 @@ export async function doShaclValidation(uuid) {
   const response = await query(queryDocumentsForMeetingValidation(uuid));
   if(response.results?.bindings?.length === 0) return 'No Document found when trying to do the SHACL validation';
 
-  const data = [];
-  const validTreatments = [];
-  for (const document of response.results.bindings) {
-    validTreatments.push(response.results.bindings);
-  }
-
-
-  let docPrefix = '';
-  let doc = '';
-  for(const document of validTreatments.filter(e => e.length)) {
+  const data = [response.results.bindings].map((document) => {
+    let docPrefix = '';
     let prefix = ''
-    let finalDoc = ''
     docPrefix = JSON.parse(document[0]?.editorDocumentContext.value).prefix
-    doc = document[0]?.editorDocumentContent.value
 
     for (const [key, value] of Object.entries(docPrefix)) {
       prefix += key + ": "+ value + " ";
     }
 
-    finalDoc = `<div prefix="${prefix}">` + doc + "</div>";
-    data.push(finalDoc)
-  }
+    return `<div prefix="${prefix}">` + document[0]?.editorDocumentContent.value + "</div>";
+  })
 
   return (await processHTML(data)).filter(e => e.length !== 0)
 }
@@ -115,7 +104,7 @@ export function overlapBetweenAbsentAndPresentPeople(missingParticipantsURIs, pa
   return [...participants].filter(x => missingParticipants.has(x)).length === 0
 }
 
-export async function validateAndgenerateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages) {
+export async function validateAndGenerateErrorMessages(meeting, treatments, areParticipantsValid, shaclMessages) {
   let isTreatmentValid = true
   let hasTreatmentPresident = true
   const responseMessage = { message: {}, status: 200 };
