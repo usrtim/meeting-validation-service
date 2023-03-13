@@ -1,2 +1,7 @@
-# meeting-validation-service
-Meeting Validation Service
+### Meeting Validation Service
+
+# Available Endpoints:
+
+> /validateMeeting
+>> query params
+>>> uuid - meeting id
